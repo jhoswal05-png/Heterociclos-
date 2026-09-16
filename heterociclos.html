@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Flashcards de Heterociclos</title>
+<style>
+  :root{
+    --bg:#f4f6f8; --card-bg:#ffffff; --accent:#0d9488; --accent2:#f97316;
+    --text:#1f2937; --muted:#6b7280; --border:#e5e7eb;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#111827; --card-bg:#1f2937; --text:#f3f4f6; --muted:#9ca3af; --border:#374151;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#111827; --card-bg:#1f2937; --text:#f3f4f6; --muted:#9ca3af; --border:#374151;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    background:var(--bg); color:var(--text); min-height:100vh; padding:16px;
+  }
+  .wrap{max-width:520px; margin:0 auto;}
+  h1{font-size:1.3rem; text-align:center; margin:6px 0 2px;}
+  .subtitle{text-align:center; color:var(--muted); font-size:0.85rem; margin-bottom:14px;}
+
+  .topbar{display:flex; gap:8px; justify-content:center; margin-bottom:14px; flex-wrap:wrap;}
+  .mode-btn{
+    border:1px solid var(--border); background:var(--card-bg); color:var(--text);
+    padding:7px 12px; border-radius:20px; font-size:0.8rem; cursor:pointer;
+  }
+  .mode-btn.active{background:var(--accent); color:white; border-color:var(--accent);}
+
+  .stats{display:flex; justify-content:space-between; align-items:center; font-size:0.8rem; color:var(--muted); margin-bottom:8px; padding:0 4px;}
+  .progress-bar{height:6px; background:var(--border); border-radius:3px; overflow:hidden; margin-bottom:16px;}
+  .progress-fill{height:100%; background:var(--accent); width:0%; transition:width .3s;}
+
+  .card-scene{perspective:1400px; height:380px; margin-bottom:16px;}
+  .card{
+    position:relative; width:100%; height:100%; cursor:pointer;
+    transform-style:preserve-3d; transition:transform .5s;
+  }
+  .card.flipped{transform:rotateY(180deg);}
+  .face{
+    position:absolute; inset:0; backface-visibility:hidden;
+    background:var(--card-bg); border:1px solid var(--border); border-radius:16px;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:18px; box-shadow:0 2px 10px rgba(0,0,0,0.08);
+    text-align:center;
+  }
+  .face.back{transform:rotateY(180deg);}
+  .tag{
+    position:absolute; top:12px; left:12px; font-size:0.65rem; font-weight:700;
+    color:white; background:var(--accent2); padding:3px 9px; border-radius:10px; letter-spacing:.03em;
+  }
+  .tag.reverse{background:var(--accent);}
+  .name-display{font-size:1.7rem; font-weight:800; color:var(--text);}
+  .name-sub{color:var(--muted); font-size:0.85rem; margin-top:6px;}
+  .struct-display svg{width:180px; height:180px;}
+  .hint{position:absolute; bottom:12px; font-size:0.7rem; color:var(--muted);}
+
+  .controls{display:flex; gap:10px; justify-content:center; margin-bottom:10px;}
+  .btn{
+    flex:1; max-width:160px; padding:12px; border-radius:12px; border:none;
+    font-size:0.95rem; font-weight:600; cursor:pointer;
+  }
+  .btn-primary{background:var(--accent); color:white;}
+  .btn-secondary{background:transparent; color:var(--text); border:1px solid var(--border);}
+  .nav{display:flex; gap:10px; justify-content:center; margin-top:6px;}
+  .nav button{
+    background:var(--card-bg); border:1px solid var(--border); color:var(--text);
+    padding:10px 18px; border-radius:10px; font-size:0.85rem; cursor:pointer;
+  }
+  .nav button:disabled{opacity:0.4; cursor:default;}
+  .finish{text-align:center; padding:30px 10px;}
+  .finish h2{margin-bottom:4px;}
+  footer{text-align:center; color:var(--muted); font-size:0.7rem; margin-top:18px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🧪 Flashcards de Heterociclos</h1>
+  <div class="subtitle">Nomenclatura común o trivial — 24 estructuras · 48 tarjetas</div>
+
+  <div class="topbar">
+    <button class="mode-btn active" data-mode="all">Todas (48)</button>
+    <button class="mode-btn" data-mode="n2s">Nombre → Estructura</button>
+    <button class="mode-btn" data-mode="s2n">Estructura → Nombre</button>
+  </div>
+
+  <div class="stats">
+    <span id="counter">Tarjeta 1 / 48</span>
+    <span id="scoreDisplay">✔ 0</span>
+  </div>
+  <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+
+  <div id="deckArea">
+    <div class="card-scene">
+      <div class="card" id="card">
+        <div class="face front" id="faceFront"></div>
+        <div class="face back" id="faceBack"></div>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button class="btn btn-secondary" id="dontKnowBtn">No la sabía</button>
+      <button class="btn btn-primary" id="knowBtn">¡La sabía!</button>
+    </div>
+    <div class="nav">
+      <button id="prevBtn">‹ Anterior</button>
+      <button id="shuffleBtn">🔀 Barajar</button>
+      <button id="nextBtn">Siguiente ›</button>
+    </div>
+  </div>
+
+  <div id="finishArea" style="display:none;" class="finish">
+    <h2>🎉 ¡Terminaste el mazo!</h2>
+    <p id="finalScore" style="color:var(--muted);"></p>
+    <button class="btn btn-primary" id="restartBtn" style="margin-top:10px;">Reiniciar mazo</button>
+  </div>
+
+  <footer>Toca la tarjeta para voltearla</footer>
+</div>
+
+<script>
+/* ---------- Generador de estructuras SVG ---------- */
+function pt(cx,cy,r,angleDeg){
+  const a=angleDeg*Math.PI/180;
+  return [cx+r*Math.cos(a), cy-r*Math.sin(a)];
+}
+function ringSVG(n, atoms, doubles){
+  const cx=70, cy=68, r= n===3?36:44;
+  const startAngle=-90;
+  const step=360/n;
+  let verts=[];
+  for(let i=0;i<n;i++){ verts.push(pt(cx,cy,r,startAngle-i*step)); }
+  let bonds='';
+  for(let i=0;i<n;i++){
+    const [x1,y1]=verts[i];
+    const [x2,y2]=verts[(i+1)%n];
+    bonds+=`<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}" x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}" stroke="#333" stroke-width="2.6" stroke-linecap="round"/>`;
+    if(doubles.includes(i)){
+      const mx=(x1+x2)/2, my=(y1+y2)/2;
+      const dx=cx-mx, dy=cy-my; const dist=Math.hypot(dx,dy)||1;
+      const ux=dx/dist, uy=dy/dist;
+      const offset=6.5, shrink=0.7;
+      const ix1=mx+(x1-mx)*shrink+ux*offset;
+      const iy1=my+(y1-my)*shrink+uy*offset;
+      const ix2=mx+(x2-mx)*shrink+ux*offset;
+      const iy2=my+(y2-my)*shrink+uy*offset;
+      bonds+=`<line x1="${ix1.toFixed(1)}" y1="${iy1.toFixed(1)}" x2="${ix2.toFixed(1)}" y2="${iy2.toFixed(1)}" stroke="#333" stroke-width="2.6" stroke-linecap="round"/>`;
+    }
+  }
+  let labels='';
+  atoms.forEach((atom,i)=>{
+    if(!atom) return;
+    const [x,y]=verts[i];
+    const color = atom.label==='N' ? '#2563eb' : atom.label==='O' ? '#dc2626' : atom.label==='S' ? '#d97706' : '#333';
+    labels+=`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="10.5" fill="var(--card-bg,#fff)"/>`;
+    labels+=`<text x="${x.toFixed(1)}" y="${(y+5.5).toFixed(1)}" font-size="16" font-weight="700" text-anchor="middle" fill="${color}" font-family="Arial, sans-serif">${atom.label}</text>`;
+    if(atom.h){
+      const dx=x-cx, dy=y-cy; const dist=Math.hypot(dx,dy)||1;
+      const hx=x+dx/dist*15, hy=y+dy/dist*15+4;
+      labels+=`<text x="${hx.toFixed(1)}" y="${hy.toFixed(1)}" font-size="11" fill="#333" font-family="Arial, sans-serif">H</text>`;
+    }
+  });
+  return `<svg viewBox="0 0 140 140" xmlns="http://www.w3.org/2000/svg">${bonds}${labels}</svg>`;
+}
+
+const N=(h)=>({label:'N', h:!!h});
+const O=()=>({label:'O'});
+const S=()=>({label:'S'});
+const C=null;
+
+/* ---------- Base de datos de heterociclos ---------- */
+const MOLS = [
+  {name:"Pirrol", n:5, atoms:[N(true),C,C,C,C], doubles:[1,3]},
+  {name:"Pirrolidina", n:5, atoms:[N(true),C,C,C,C], doubles:[]},
+  {name:"Furano", n:5, atoms:[O(),C,C,C,C], doubles:[1,3]},
+  {name:"THF (Tetrahidrofurano)", n:5, atoms:[O(),C,C,C,C], doubles:[]},
+  {name:"Óxido de etileno", n:3, atoms:[O(),C,C], doubles:[]},
+  {name:"Tiofeno", n:5, atoms:[S(),C,C,C,C], doubles:[1,3]},
+  {name:"4H-Tiopirano", n:6, atoms:[S(),C,C,C,C,C], doubles:[1,4]},
+  {name:"Piridina", n:6, atoms:[N(),C,C,C,C,C], doubles:[0,2,4]},
+  {name:"Piperidina", n:6, atoms:[N(true),C,C,C,C,C], doubles:[]},
+  {name:"2H-Pirano", n:6, atoms:[O(),C,C,C,C,C], doubles:[2,4]},
+  {name:"THP (Tetrahidropirano)", n:6, atoms:[O(),C,C,C,C,C], doubles:[]},
+  {name:"Pirazol", n:5, atoms:[N(true),N(),C,C,C], doubles:[1,3]},
+  {name:"Imidazol", n:5, atoms:[N(true),C,N(),C,C], doubles:[1,3]},
+  {name:"Isoxazol", n:5, atoms:[O(),N(),C,C,C], doubles:[1,3]},
+  {name:"Oxazol", n:5, atoms:[O(),C,N(),C,C], doubles:[1,3]},
+  {name:"Tiazol", n:5, atoms:[S(),C,N(),C,C], doubles:[1,3]},
+  {name:"Isotiazol", n:5, atoms:[S(),N(),C,C,C], doubles:[1,3]},
+  {name:"1,2,3-Triazol", n:5, atoms:[N(true),N(),N(),C,C], doubles:[1,3]},
+  {name:"Tetrazol", n:5, atoms:[N(true),N(),N(),N(),C], doubles:[1,3]},
+  {name:"Furazano", n:5, atoms:[O(),N(),C,C,N()], doubles:[1,3]},
+  {name:"Piridazina", n:6, atoms:[N(),N(),C,C,C,C], doubles:[0,2,4]},
+  {name:"Pirimidina", n:6, atoms:[N(),C,N(),C,C,C], doubles:[0,2,4]},
+  {name:"Pirazina", n:6, atoms:[N(),C,C,N(),C,C], doubles:[0,2,4]},
+  {name:"Morfolina", n:6, atoms:[O(),C,C,N(true),C,C], doubles:[]},
+];
+
+MOLS.forEach(m=> m.svg = ringSVG(m.n, m.atoms, m.doubles));
+
+/* ---------- Construcción del mazo de 48 tarjetas ---------- */
+function buildDeck(){
+  const deck=[];
+  MOLS.forEach(m=>{
+    deck.push({type:'n2s', name:m.name, svg:m.svg});
+    deck.push({type:'s2n', name:m.name, svg:m.svg});
+  });
+  return deck;
+}
+function shuffle(arr){
+  const a=arr.slice();
+  for(let i=a.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+
+let fullDeck = shuffle(buildDeck());
+let deck = fullDeck;
+let currentMode='all';
+let idx=0;
+let flipped=false;
+let score=0;
+let answered=new Array(deck.length).fill(false);
+
+const cardEl=document.getElementById('card');
+const faceFront=document.getElementById('faceFront');
+const faceBack=document.getElementById('faceBack');
+const counter=document.getElementById('counter');
+const scoreDisplay=document.getElementById('scoreDisplay');
+const progressFill=document.getElementById('progressFill');
+const deckArea=document.getElementById('deckArea');
+const finishArea=document.getElementById('finishArea');
+const finalScore=document.getElementById('finalScore');
+
+function renderCard(){
+  flipped=false;
+  cardEl.classList.remove('flipped');
+  const item=deck[idx];
+  const isN2S = item.type==='n2s';
+  faceFront.innerHTML = `
+    <div class="tag ${isN2S?'':'reverse'}">${isN2S? 'NOMBRE → ESTRUCTURA' : 'ESTRUCTURA → NOMBRE'}</div>
+    ${isN2S
+      ? `<div class="name-display">${item.name}</div><div class="name-sub">¿Cómo es su estructura?</div>`
+      : `<div class="struct-display">${item.svg}</div><div class="name-sub">¿Cómo se llama?</div>`
+    }
+    <div class="hint">Toca para ver la respuesta</div>
+  `;
+  faceBack.innerHTML = `
+    <div class="tag ${isN2S?'':'reverse'}">RESPUESTA</div>
+    ${isN2S
+      ? `<div class="struct-display">${item.svg}</div><div class="name-sub">${item.name}</div>`
+      : `<div class="name-display">${item.name}</div>`
+    }
+    <div class="hint">Toca para volver</div>
+  `;
+  counter.textContent = `Tarjeta ${idx+1} / ${deck.length}`;
+  scoreDisplay.textContent = `✔ ${score}`;
+  progressFill.style.width = `${(idx/deck.length)*100}%`;
+  document.getElementById('prevBtn').disabled = idx===0;
+  deckArea.style.display='block';
+  finishArea.style.display='none';
+}
+
+function flipCard(){
+  flipped=!flipped;
+  cardEl.classList.toggle('flipped', flipped);
+}
+
+function nextCard(){
+  if(idx < deck.length-1){
+    idx++;
+    renderCard();
+  } else {
+    showFinish();
+  }
+}
+function prevCard(){
+  if(idx>0){ idx--; renderCard(); }
+}
+function showFinish(){
+  deckArea.style.display='none';
+  finishArea.style.display='block';
+  finalScore.textContent = `Acertaste ${score} de ${deck.length} tarjetas.`;
+  progressFill.style.width='100%';
+}
+
+cardEl.addEventListener('click', flipCard);
+
+document.getElementById('knowBtn').addEventListener('click', ()=>{
+  if(!answered[idx]){ score++; answered[idx]=true; }
+  nextCard();
+});
+document.getElementById('dontKnowBtn').addEventListener('click', ()=>{
+  nextCard();
+});
+document.getElementById('nextBtn').addEventListener('click', nextCard);
+document.getElementById('prevBtn').addEventListener('click', prevCard);
+document.getElementById('shuffleBtn').addEventListener('click', ()=>{
+  deck = shuffle(deck);
+  idx=0; score=0; answered=new Array(deck.length).fill(false);
+  renderCard();
+});
+document.getElementById('restartBtn').addEventListener('click', ()=>{
+  deck = shuffle(deck);
+  idx=0; score=0; answered=new Array(deck.length).fill(false);
+  renderCard();
+});
+
+document.querySelectorAll('.mode-btn').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.mode-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    currentMode = btn.dataset.mode;
+    let base = fullDeck;
+    if(currentMode==='n2s') base = fullDeck.filter(c=>c.type==='n2s');
+    else if(currentMode==='s2n') base = fullDeck.filter(c=>c.type==='s2n');
+    deck = shuffle(base);
+    idx=0; score=0; answered=new Array(deck.length).fill(false);
+    renderCard();
+  });
+});
+
+renderCard();
+</script>
+</body>
+</html>
